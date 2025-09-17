@@ -1,51 +1,39 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_COMPOSE_FILE = 'docker-compose.yml'
+    }
+
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/Snehamaturu-123/notes-app.git'
+                git branch: 'main', url: 'https://github.com/Snehamaturu-123/notes-app'
             }
         }
 
         stage('Build Docker Images') {
-            parallel {
-                stage('Build Backend') {
-                    steps {
-                        sh 'docker build -t notes-backend ./backend'
-                    }
-                }
-                stage('Build Frontend') {
-                    steps {
-                        sh 'docker build -t notes-frontend ./frontend'
-                    }
-                }
+            steps {
+                sh 'docker-compose build'
             }
         }
 
-        stage('Create Network') {
+        stage('Start Containers') {
             steps {
-                sh 'docker network create notes-net || true'
+                sh 'docker-compose up -d'
             }
         }
 
-        stage('Run Containers') {
+        stage('Verify') {
             steps {
-                sh '''
-                docker run -d --name notes-mongo --network notes-net -p 27017:27017 mongo:6
-                docker run -d --name notes-backend --network notes-net -p 5000:5000 notes-backend
-                docker run -d --name notes-frontend --network notes-net -p 8082:80 notes-frontend
-                '''
+                sh 'docker ps'
             }
         }
     }
 
     post {
-        success {
-            echo 'Deployment succeeded!'
-        }
-        failure {
-            echo 'Deployment failed. Check logs.'
+        always {
+            echo 'Pipeline finished!'
         }
     }
 }
