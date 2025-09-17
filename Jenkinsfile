@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_NETWORK = 'notes-net'
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')  
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-cred')  
         // 👆 Replace with the ID you gave in Jenkins credentials
     }
 
