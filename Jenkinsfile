@@ -20,7 +20,6 @@ pipeline {
 
         stage('Cleanup Old Containers') {
             steps {
-                // Stop and remove old containers if they exist
                 sh '''
                 docker rm -f notes-frontend || true
                 docker rm -f notes-backend || true
@@ -31,7 +30,6 @@ pipeline {
 
         stage('Create Network') {
             steps {
-                // Create network if it doesn’t exist
                 sh '''
                 docker network inspect ${DOCKER_NETWORK} >/dev/null 2>&1 || \
                 docker network create ${DOCKER_NETWORK}
