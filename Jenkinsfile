@@ -18,6 +18,7 @@ pipeline {
                 sh '''
                 docker rm -f notes-backend || true
                 docker rm -f notes-frontend || true
+                docker rm -f notes-mongo || true 
                 docker rmi -f notes-backend || true
                 docker rmi -f notes-frontend || true
                 '''
