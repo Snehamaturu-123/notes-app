@@ -3,8 +3,6 @@ pipeline {
 
     environment {
         DOCKER_NETWORK = 'notes-net'
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-cred')  
-        // 👆 Replace with the ID you gave in Jenkins credentials
     }
 
     stages {
@@ -17,24 +15,6 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 sh 'docker-compose build'
-            }
-        }
-
-        stage('Login to DockerHub') {
-            steps {
-                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
-            }
-        }
-
-        stage('Push Docker Images') {
-            steps {
-                sh '''
-                docker tag notes-backend $DOCKERHUB_CREDENTIALS_USR/notes-backend:latest
-                docker tag notes-frontend $DOCKERHUB_CREDENTIALS_USR/notes-frontend:latest
-
-                docker push $DOCKERHUB_CREDENTIALS_USR/notes-backend:latest
-                docker push $DOCKERHUB_CREDENTIALS_USR/notes-frontend:latest
-                '''
             }
         }
 
@@ -72,6 +52,20 @@ pipeline {
         stage('Verify') {
             steps {
                 sh 'docker ps'
+            }
+        }
+
+        stage('Push Docker Images to DockerHub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    docker tag notes-backend $DOCKER_USER/notes-backend:latest
+                    docker tag notes-frontend $DOCKER_USER/notes-frontend:latest
+                    docker push $DOCKER_USER/notes-backend:latest
+                    docker push $DOCKER_USER/notes-frontend:latest
+                    '''
+                }
             }
         }
     }
