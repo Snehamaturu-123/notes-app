@@ -39,6 +39,19 @@ pipeline {
             }
         }
 
+        stage('Clean Existing Containers') {
+            steps {
+                script {
+                    echo "Stopping and removing existing containers if any..."
+                    sh '''
+                    docker rm -f notes-mongo || true
+                    docker rm -f notes-backend || true
+                    docker rm -f notes-frontend || true
+                    '''
+                }
+            }
+        }
+
         stage('Run Containers') {
             steps {
                 script {
