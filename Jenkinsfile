@@ -14,25 +14,26 @@ pipeline {
 
         stage('Build Docker Images') {
             steps {
-                sh 'docker-compose build'
+                bat 'docker-compose build'
             }
         }
 
         stage('Start Containers') {
             steps {
-                sh 'docker-compose up -d'
+                bat 'docker-compose up -d'
             }
         }
 
         stage('Verify') {
             steps {
-                sh 'docker ps'
+                bat 'docker ps'
             }
         }
     }
 
     post {
         always {
+            bat 'docker-compose down'
             echo 'Pipeline finished!'
         }
     }
