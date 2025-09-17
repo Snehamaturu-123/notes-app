@@ -41,16 +41,17 @@ pipeline {
         }
 
         stage('Run Containers') {
-            steps {
-                sh '''
-                docker run -d --name notes-mongo --network ${DOCKER_NETWORK} -p 27017:27017 mongo:6
-                docker run -d --name notes-backend --network ${DOCKER_NETWORK} -p 5000:5000 \
-                  -e SPRING_DATA_MONGODB_URI=mongodb://notes-mongo:27017/notesdb notes-backend
-                docker run -d --name notes-frontend --network ${DOCKER_NETWORK} -p 8082:80 \
-                  -e REACT_APP_API_URL=http://notes-backend:5000 notes-frontend
-                '''
-            }
-        }
+    steps {
+        sh '''
+        docker run -d --name notes-mongo --network ${DOCKER_NETWORK} -p 27017:27017 mongo:6
+        docker run -d --name notes-backend --network ${DOCKER_NETWORK} -p 5000:5000 \
+          -e SPRING_DATA_MONGODB_URI=mongodb://notes-mongo:27017/notesdb notes2-backend
+        docker run -d --name notes-frontend --network ${DOCKER_NETWORK} -p 8082:80 \
+          -e REACT_APP_API_URL=http://notes-backend:5000 notes2-frontend
+        '''
+    }
+}
+
 
         stage('Login to DockerHub') {
             steps {
