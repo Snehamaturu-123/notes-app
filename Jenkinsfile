@@ -62,17 +62,19 @@ pipeline {
         }
 
         stage('Push Docker Images') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh '''
-                    docker tag notes-backend $DOCKER_USER/notes-backend:latest
-                    docker tag notes-frontend $DOCKER_USER/notes-frontend:latest
-                    docker push $DOCKER_USER/notes-backend:latest
-                    docker push $DOCKER_USER/notes-frontend:latest
-                    '''
-                }
-            }
+    steps {
+        withCredentials([string(credentialsId: 'docker-hub-pass', variable: 'DOCKER_PASS')]) {
+            sh '''
+            echo $DOCKER_PASS | docker login -u snehamaturu --password-stdin
+            docker tag notes2-backend snehamaturu/notes-backend:latest
+            docker tag notes2-frontend snehamaturu/notes-frontend:latest
+            docker push snehamaturu/notes-backend:latest
+            docker push snehamaturu/notes-frontend:latest
+            '''
         }
+    }
+}
+
 
         stage('Verify') {
             steps {
