@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         DOCKER_NETWORK = 'notes-net'
+        DOCKERHUB_CREDENTIALS = 'dockerhub-cred' // Add your Jenkins DockerHub credentials ID here
     }
 
     stages {
@@ -12,19 +13,20 @@ pipeline {
             }
         }
 
-        stage('Build Docker Images') {
+        stage('Cleanup Old Containers & Images') {
             steps {
-                sh 'docker-compose build'
+                sh '''
+                docker rm -f notes-backend || true
+                docker rm -f notes-frontend || true
+                docker rmi -f notes-backend || true
+                docker rmi -f notes-frontend || true
+                '''
             }
         }
 
-        stage('Cleanup Old Containers') {
+        stage('Build Docker Images') {
             steps {
-                sh '''
-                docker rm -f notes-frontend || true
-                docker rm -f notes-backend || true
-                docker rm -f notes-mongo || true
-                '''
+                sh 'docker-compose build backend frontend'
             }
         }
 
@@ -49,23 +51,30 @@ pipeline {
             }
         }
 
-        stage('Verify') {
+        stage('Login to DockerHub') {
             steps {
-                sh 'docker ps'
+                withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                }
             }
         }
 
-        stage('Push Docker Images to DockerHub') {
+        stage('Push Docker Images') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
-                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                     docker tag notes-backend $DOCKER_USER/notes-backend:latest
                     docker tag notes-frontend $DOCKER_USER/notes-frontend:latest
                     docker push $DOCKER_USER/notes-backend:latest
                     docker push $DOCKER_USER/notes-frontend:latest
                     '''
                 }
+            }
+        }
+
+        stage('Verify') {
+            steps {
+                sh 'docker ps'
             }
         }
     }
