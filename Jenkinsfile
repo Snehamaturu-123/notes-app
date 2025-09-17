@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_NETWORK = 'notes-net'
-        DOCKERHUB_CREDENTIALS = 'dockerhub-cred' // Add your Jenkins DockerHub credentials ID here
+        DOCKERHUB_CREDENTIALS = 'dockerhub-cred' // Jenkins DockerHub credentials ID
     }
 
     stages {
@@ -41,17 +41,16 @@ pipeline {
         }
 
         stage('Run Containers') {
-    steps {
-        sh '''
-        docker run -d --name notes-mongo --network ${DOCKER_NETWORK} -p 27017:27017 mongo:6
-        docker run -d --name notes-backend --network ${DOCKER_NETWORK} -p 5000:5000 \
-          -e SPRING_DATA_MONGODB_URI=mongodb://notes-mongo:27017/notesdb notes2-backend
-        docker run -d --name notes-frontend --network ${DOCKER_NETWORK} -p 8082:80 \
-          -e REACT_APP_API_URL=http://notes-backend:5000 notes2-frontend
-        '''
-    }
-}
-
+            steps {
+                sh '''
+                docker run -d --name notes-mongo --network ${DOCKER_NETWORK} -p 27017:27017 mongo:6
+                docker run -d --name notes-backend --network ${DOCKER_NETWORK} -p 5000:5000 \
+                  -e SPRING_DATA_MONGODB_URI=mongodb://notes-mongo:27017/notesdb notes2-backend
+                docker run -d --name notes-frontend --network ${DOCKER_NETWORK} -p 8082:80 \
+                  -e REACT_APP_API_URL=http://notes-backend:5000 notes2-frontend
+                '''
+            }
+        }
 
         stage('Login to DockerHub') {
             steps {
@@ -62,19 +61,18 @@ pipeline {
         }
 
         stage('Push Docker Images') {
-    steps {
-        withCredentials([string(credentialsId: 'docker-hub-pass', variable: 'DOCKER_PASS')]) {
-            sh '''
-            echo $DOCKER_PASS | docker login -u snehamaturu --password-stdin
-            docker tag notes2-backend snehamaturu/notes-backend:latest
-            docker tag notes2-frontend snehamaturu/notes-frontend:latest
-            docker push snehamaturu/notes-backend:latest
-            docker push snehamaturu/notes-frontend:latest
-            '''
+            steps {
+                withCredentials([usernamePassword(credentialsId: "${DOCKERHUB_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    docker tag notes2-backend $DOCKER_USER/notes-backend:latest
+                    docker tag notes2-frontend $DOCKER_USER/notes-frontend:latest
+                    docker push $DOCKER_USER/notes-backend:latest
+                    docker push $DOCKER_USER/notes-frontend:latest
+                    '''
+                }
+            }
         }
-    }
-}
-
 
         stage('Verify') {
             steps {
