@@ -14,39 +14,54 @@ pipeline {
 
         stage('Build Docker Images') {
             steps {
-                sh 'docker-compose build'
+                script {
+                    try {
+                        sh 'docker-compose build'
+                    } catch (err) {
+                        echo "Error building Docker images"
+                        sh 'docker-compose logs --tail=50'
+                        error "Build failed"
+                    }
+                }
             }
         }
 
-        stage('Start Containers') {
+        stage('Create Network') {
             steps {
-                // Start containers in detached mode
-                sh 'docker-compose up -d'
+                script {
+                    try {
+                        sh 'docker network create notes-net || true'
+                    } catch (err) {
+                        echo "Error creating Docker network"
+                        error "Network creation failed"
+                    }
+                }
+            }
+        }
 
-                // Wait for MongoDB to be ready
-                sh '''
-                echo "Waiting for MongoDB..."
-                until docker exec notes-mongo mongo --eval "db.adminCommand('ping')" &>/dev/null; do
-                    sleep 2
-                done
-                echo "MongoDB is ready!"
-                '''
-
-                // Optionally wait for backend to be ready
-                sh '''
-                echo "Waiting for backend..."
-                until curl -s http://localhost:5000/health &>/dev/null; do
-                    sleep 2
-                done
-                echo "Backend is ready!"
-                '''
+        stage('Run Containers') {
+            steps {
+                script {
+                    try {
+                        sh '''
+                        docker run -d --name notes-mongo --network notes-net -p 27017:27017 mongo:6
+                        docker run -d --name notes-backend --network notes-net -p 5000:5000 notes-backend
+                        docker run -d --name notes-frontend --network notes-net -p 8082:80 notes-frontend
+                        '''
+                    } catch (err) {
+                        echo "Error starting containers, showing logs..."
+                        sh 'docker logs notes-mongo || true'
+                        sh 'docker logs notes-backend || true'
+                        sh 'docker logs notes-frontend || true'
+                        error "Container startup failed"
+                    }
+                }
             }
         }
 
         stage('Verify') {
             steps {
                 sh 'docker ps'
-                sh 'docker-compose logs --tail=20'
             }
         }
     }
