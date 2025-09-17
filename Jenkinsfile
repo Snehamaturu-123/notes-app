@@ -3,6 +3,8 @@ pipeline {
 
     environment {
         DOCKER_NETWORK = 'notes-net'
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')  
+        // 👆 Replace with the ID you gave in Jenkins credentials
     }
 
     stages {
@@ -18,9 +20,26 @@ pipeline {
             }
         }
 
+        stage('Login to DockerHub') {
+            steps {
+                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+            }
+        }
+
+        stage('Push Docker Images') {
+            steps {
+                sh '''
+                docker tag notes-backend $DOCKERHUB_CREDENTIALS_USR/notes-backend:latest
+                docker tag notes-frontend $DOCKERHUB_CREDENTIALS_USR/notes-frontend:latest
+
+                docker push $DOCKERHUB_CREDENTIALS_USR/notes-backend:latest
+                docker push $DOCKERHUB_CREDENTIALS_USR/notes-frontend:latest
+                '''
+            }
+        }
+
         stage('Cleanup Old Containers') {
             steps {
-                // Stop and remove old containers if they exist
                 sh '''
                 docker rm -f notes-frontend || true
                 docker rm -f notes-backend || true
@@ -31,7 +50,6 @@ pipeline {
 
         stage('Create Network') {
             steps {
-                // Create network if it doesn’t exist
                 sh '''
                 docker network inspect ${DOCKER_NETWORK} >/dev/null 2>&1 || \
                 docker network create ${DOCKER_NETWORK}
