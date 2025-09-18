@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         DOCKER_NETWORK = 'notes-net'
+        DOCKERHUB_USER = 'snehamaturu'
     }
 
     stages {
@@ -15,6 +16,22 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 sh 'docker-compose build'
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-cred',
+                                                 usernameVariable: 'DOCKER_USER',
+                                                 passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    docker tag notes-frontend:latest ${DOCKERHUB_USER}/notes-frontend:latest
+                    docker tag notes-backend:latest ${DOCKERHUB_USER}/notes-backend:latest
+                    docker push ${DOCKERHUB_USER}/notes-frontend:latest
+                    docker push ${DOCKERHUB_USER}/notes-backend:latest
+                    '''
+                }
             }
         }
 
