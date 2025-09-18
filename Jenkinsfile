@@ -48,6 +48,19 @@ pipeline {
                 '''
             }
         }
+        stage('Push Docker Images') {
+        steps {
+            withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                sh '''
+                echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                docker tag notes-backend $DOCKER_USER/notes-backend:latest
+                docker tag notes-frontend $DOCKER_USER/notes-frontend:latest
+                docker push $DOCKER_USER/notes-backend:latest
+                docker push $DOCKER_USER/notes-frontend:latest
+                '''
+            }
+        }
+    }
 
         stage('Verify') {
             steps {
